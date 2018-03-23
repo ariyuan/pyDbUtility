@@ -5,9 +5,15 @@ python pyDbUtility.py -c username/password@oracle_hostname:1521/sid -q "drop use
 
 Jenkins Integration:
 Pass following paramer to script from Jenkins
+
 dbServerAddress
+
 servicename
+
 dbPort
+
 dbaUser
+
 dbaPassword
+
 dbType
