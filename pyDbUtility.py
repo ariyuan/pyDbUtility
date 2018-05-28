@@ -1,6 +1,7 @@
 from subprocess import Popen, PIPE
 import argparse
 import os
+import time
 
 
 sql_plus_fullpath = r"C:\GitHub\pyDbUtility\instantclient_12_1\sqlplus"
@@ -10,6 +11,29 @@ def run_sql_query(sql_command, connect_string):
     session = Popen([sql_plus_fullpath, '-S', connect_string], stdin=PIPE, stdout=PIPE, stderr=PIPE)
     session.stdin.write(sql_command)
     return session.communicate()
+
+
+def get_oracle_active_session(schema_name):
+    list = []
+    queryResult, errorMessage = run_sql_query("SELECT s.sid, s.serial# FROM v$session s, v$process p WHERE s.username = '{0}' AND p.addr(+) = s.paddr;".format(schema_name), conn_str)
+    queryResult = queryResult.strip()
+    print queryResult
+    if queryResult.strip() != "no rows selected":
+        queryResult = queryResult.split('\n')
+        for line in queryResult:
+            if line.strip().startswith("SID") or line.strip().startswith("---"):
+                pass
+            else:
+                list.append({line.strip().split('\t')[0]: line.strip().split('\t')[1]})
+    return list
+
+
+def delete_oralce_schema(schema_name):
+    list = get_oracle_active_session(schema_name)
+    if list.__len__()>0:
+        for element in list:
+            run_sql_query("ALTER SYSTEM KILL SESSION '{0}, {1}';".format(element.keys()[0], element.values()[0]), conn_str)
+    run_sql_query("DROP USER " + schema_name + " CASCADE;", conn_str)
 
 
 def get_conn_str_from_jenkins():
@@ -31,6 +55,7 @@ if __name__ == "__main__":
     parser.add_argument("-c", '--connStr', help="Connection string that used for connecting db")
     parser.add_argument("-q", '--query', help="Query to be run")
     parser.add_argument("-p", '--path', help="Full path of sqlplus execution file, oracle only")
+    parser.add_argument("-d", '--deleteSchema', help="Delete specific schema from Oracle db")
     args = parser.parse_args()
     if args.path is not None:
         sql_plus_fullpath = args.path
@@ -40,7 +65,11 @@ if __name__ == "__main__":
     else:
         # Get connection string from args
         conn_str = args.connStr
-    queryResult, errorMessage = run_sql_query(args.query, conn_str)
+    if args.query is not None:
+        queryResult, errorMessage = run_sql_query(args.query, conn_str)
+        print queryResult
+    if args.deleteSchema is not None:
+        delete_oralce_schema(args.deleteSchema)
 
     # sqlCommand = 'select * from dba_directories;'
-    print queryResult
+
