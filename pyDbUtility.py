@@ -33,7 +33,8 @@ def delete_oralce_schema(schema_name):
     if list.__len__()>0:
         for element in list:
             run_sql_query("ALTER SYSTEM KILL SESSION '{0}, {1}';".format(element.keys()[0], element.values()[0]), conn_str)
-    run_sql_query("DROP USER " + schema_name + " CASCADE;", conn_str)
+    queryResult, errorMessage = run_sql_query("DROP USER " + schema_name + " CASCADE;", conn_str)
+    print queryResult
 
 
 def get_conn_str_from_jenkins():
